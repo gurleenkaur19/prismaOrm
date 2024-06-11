@@ -141,16 +141,17 @@ app.get(`/post/:id`, async (req, res) => {
 });
 
 app.get("/feed", async (req, res) => {
-  const { searchString, skip, take, orderBy } = req.query;
+  const { searchString = '', skip, take, orderBy } = req.query;
   try {
-    // Fetch the posts based on the query parameters from the database
     const posts = await prisma.post.findMany({
       where: {
         published: true,
-        OR: [
-          { title: { contains: String(searchString) || '' } },
-          { content: { contains: String(searchString) || '' } }
-        ]
+        ...(searchString ? {
+          OR: [
+            { title: { contains: searchString as String } },
+            { content: { contains: searchString as String} }
+          ]
+        } : {})
       },
       include: {
         author: true
@@ -161,10 +162,8 @@ app.get("/feed", async (req, res) => {
         updatedAt: orderBy === 'desc' ? 'desc' : 'asc'
       }
     });
-    // Send the fetched posts as a JSON response
     res.json(posts);
   } catch (error) {
-    // Handle any errors
     res.status(500).json({ error: 'An error occurred while fetching the feed' });
   }
 });
